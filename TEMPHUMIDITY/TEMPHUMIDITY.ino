@@ -31,15 +31,6 @@ void loop() {
 
 void fanControl(){
    unsigned long currentMillis = millis();
-   Serial.println("Stato:");
-  Serial.println(state);
-  Serial.println("Current millis:");
-  Serial.println(currentMillis);
-  Serial.println("Previous millis:");
-  Serial.println(previousMillis);
- Serial.println("Intervallo:");
- Serial.println(currentMillis - previousMillis);
- Serial.println();
  if (state==LOW){   //se la ventola è spenta
   if (currentMillis - previousMillis >= intervalLong) {     //si accende dopo 20 secondi
       previousMillis = currentMillis;
@@ -56,15 +47,9 @@ void fanControl(){
  }
 }
 
-
-
 void printTH(){
    t = (int) DHT.temperature;
    h = (int) DHT.humidity;
-//  Serial.print("Temperature = ");
-//  Serial.println(DHT.temperature);
-//  Serial.print("Humidity = ");
-//  Serial.println(DHT.humidity);
   lcd.setCursor(1, 1);
   lcd.print(t);
   lcd.print((char)223);

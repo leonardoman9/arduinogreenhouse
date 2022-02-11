@@ -15,6 +15,8 @@ int fanState = LOW;
 void setup() {
   Serial.begin(9600);
   Serial.println("START");
+  lcd.begin(16, 2);
+  lcd.print("Temp:  Umidita':");
   pinMode(13, OUTPUT);
   pinMode(10, OUTPUT);
 }

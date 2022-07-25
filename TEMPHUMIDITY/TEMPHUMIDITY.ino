@@ -28,9 +28,9 @@ int frame=0;
 unsigned long previousMillis = 0;
 unsigned long interval = minuti(1);
 unsigned long intervalLong = minuti(1);
-int lightMax = 600;
+const int lightMax = 600;
 int fanState = LOW;
-int moistMin = 400;
+const int moistMin = 400;
 int temperature;
 int humidity;
 int moist;
@@ -44,7 +44,7 @@ void setup() {
   }
   pinMode(FAN, OUTPUT);
   pinMode(WATER,OUTPUT);
-  pinMode(WATER, OUTPUT);
+  pinMode(LIGHT, OUTPUT);
 }
 
 void loop() {
@@ -82,10 +82,10 @@ void refreshLcd(){
 void lightControl() {
   int lightVal = analogRead(PHOTO_IN);
   if (lightVal < lightMax) {
-    digitalWrite(WATER, HIGH);
+    digitalWrite(LIGHT, HIGH);
   }
   else {
-    digitalWrite(WATER, LOW);
+    digitalWrite(LIGHT, LOW);
   }
 }
 void printTH() {

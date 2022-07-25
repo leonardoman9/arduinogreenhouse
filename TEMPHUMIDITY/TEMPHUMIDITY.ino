@@ -4,8 +4,8 @@
 
 //ins
 #define PHOTO_IN A0
-#define DHT11_PIN 7
 #define MOIST A1
+#define DHT11_PIN 7
 //outs
 #define FAN 13
 #define WATER 9
@@ -20,6 +20,7 @@ void printTH();
 void lightControl();
 void fanControl();
 void moistControl();
+void checkWater();
 long minuti(int a);
 
 const int REFRESH_RATE = 20;
@@ -145,6 +146,11 @@ void fanControl() {
   Serial.print("Cambio di stato della ventola fra ");
   Serial.print(intervalLong / 1000 - (millis() / 1000 - previousMillis / 1000));
   Serial.println(" secondi");
+}
+
+void checkWater(){
+ //TODO
+
 }
 
 

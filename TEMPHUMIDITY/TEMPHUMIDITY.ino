@@ -15,6 +15,7 @@ unsigned long interval = minuti(1);
 unsigned long intervalLong = minuti(1);
 int lightMax = 600;
 int fanState = LOW;
+int moistMin = 400;
 int temperature;
 int humidity;
 int moist;
@@ -31,6 +32,7 @@ void setup() {
   lcd.print("h:");
 
   pinMode(13, OUTPUT);
+  pinMode(9,OUTPUT);
   pinMode(10, OUTPUT);
 }
 
@@ -53,15 +55,20 @@ void lightControl() {
 
 void moistControl(){
   int moistVal = analogRead(MOIST);
-  Serial.println(moistVal);
+  //Serial.println(moistVal);
   if(moistVal!= moist){
-    moist = moistVal;
-
+    moist = 1023-moistVal;
     lcd.setCursor(5,1);
     lcd.print("    ");
     lcd.setCursor(5,1);
-    lcd.print(moistVal);
+    lcd.print(moist);
    }
+   Serial.println(moistMin - moist);
+   if(moistMin-moist>0){
+    digitalWrite(9, HIGH);
+   }else {
+    digitalWrite(9, LOW);
+  }
 }
 
 void fanControl() {
@@ -80,6 +87,7 @@ void fanControl() {
       fanState = LOW;
     }
   }
+  //per qualche motivo, queste tre righe sono fondamentali per il funzioamento dell'lcd
   Serial.print("Cambio di stato della ventola fra ");
   Serial.print(intervalLong / 1000 - (millis() / 1000 - previousMillis / 1000));
   Serial.println(" secondi");
@@ -104,7 +112,6 @@ void printTH() {
     }
   if (t!=temperature || h != humidity){
           frame++;
-
     temperature = t;
     humidity = h;
     lcd.setCursor(0, 1);

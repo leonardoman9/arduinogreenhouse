@@ -1,28 +1,18 @@
 #include <dht.h>
 #include <LiquidCrystal.h>
 
-
-//ins
+long minuti(int a);
+LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
+dht DHT;
 #define PHOTO_IN A0
 #define DHT11_PIN 7
 #define MOIST A1
-//outs
-#define FAN 13
-#define WATER 9
-#define LIGHT 10
-
-LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
-dht DHT;
-void lcdInitialize();
-void refreshLcd();
+#define REFRESH_RATE 20
 void lightControl();
 void printTH();
 void lightControl();
 void fanControl();
 void moistControl();
-long minuti(int a);
-
-const int REFRESH_RATE = 20;
 int frame=0;
 unsigned long previousMillis = 0;
 unsigned long interval = minuti(1);
@@ -34,33 +24,9 @@ int temperature;
 int humidity;
 int moist;
 
-
 void setup() {
   Serial.begin(9600);
-  lcdInitialize();
-  for (int i=0; i<=13; i++){
-    digitalWrite(i, LOW);
-  }
-  pinMode(FAN, OUTPUT);
-  pinMode(WATER,OUTPUT);
-  pinMode(WATER, OUTPUT);
-}
-
-void loop() {
-  //stampa temperatura e umidità aria
-  printTH();
-  //controllo luce
-  lightControl();
-  //controllo ventilazione
-  fanControl();
-  //controllo umidità terreno e aggiornamento lcd
-  moistControl();
-  //reimpostazione lcd
-  if (frame==REFRESH_RATE) refreshLcd();
-}
-
-
-void lcdInitialize(){
+  Serial.println("START");
   lcd.begin(16, 2);
   lcd.setCursor(0, 0);
   lcd.print("t:");
@@ -68,23 +34,34 @@ void lcdInitialize(){
   lcd.print("m:");
   lcd.setCursor(13,0);
   lcd.print("h:");
+
+  pinMode(13, OUTPUT);
+  pinMode(9,OUTPUT);
+  pinMode(10, OUTPUT);
 }
 
-void refreshLcd(){ 
+void loop() {
+
+  printTH();
+  lightControl();
+  fanControl();
+  moistControl();
+   if (frame==REFRESH_RATE) {
     lcd.clear();
     lcd.begin(16, 2);
     lcd.setCursor(0, 0);
     frame=0;
     Serial.println("LCD pulito");
+    }
 }
 
 void lightControl() {
   int lightVal = analogRead(PHOTO_IN);
   if (lightVal < lightMax) {
-    digitalWrite(WATER, HIGH);
+    digitalWrite(10, HIGH);
   }
   else {
-    digitalWrite(WATER, LOW);
+    digitalWrite(10, LOW);
   }
 }
 void printTH() {
@@ -107,7 +84,7 @@ void printTH() {
     lcd.print(h);
     lcd.print("%");
   }
-}
+  }
 void moistControl(){
   int moistVal = analogRead(MOIST);
   if(moistVal!= moist){
@@ -118,10 +95,11 @@ void moistControl(){
     lcd.setCursor(5,1);
     lcd.print(moist);
    }
+   Serial.println(moistMin - moist);
    if(moistMin-moist>0){
-    digitalWrite(WATER, HIGH);
+    digitalWrite(9, HIGH);
    }else {
-    digitalWrite(WATER, LOW);
+    digitalWrite(9, LOW);
   }
 }
 
@@ -130,14 +108,14 @@ void fanControl() {
   if (fanState == LOW) { //se la ventola è spenta
     if (currentMillis - previousMillis >= intervalLong) {
       previousMillis = currentMillis;
-      digitalWrite(FAN, HIGH);
+      digitalWrite(13, HIGH);
       fanState = HIGH;
     }
   }
   else if (fanState == HIGH) {
     if (currentMillis - previousMillis >= interval) {
       previousMillis = currentMillis;
-      digitalWrite(FAN, LOW);
+      digitalWrite(13, LOW);
       fanState = LOW;
     }
   }

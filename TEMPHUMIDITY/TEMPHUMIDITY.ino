@@ -86,6 +86,10 @@ void moistControl(){
    }
    
     while (moistMin-moist>0){
+      lcd.setCursor(0,0);
+      lcd.print("IRRIGATING!");
+      lcd.setCursor(0,1);
+      lcd.print("Watering...");
       Serial.println("IRRIGATING!");
       irrigated = true;
       if(WATER_ON) digitalWrite(WATER, HIGH);

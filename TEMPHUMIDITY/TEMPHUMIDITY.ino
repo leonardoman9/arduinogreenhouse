@@ -11,7 +11,7 @@
 #define WATER 9
 #define LIGHT 10
 //parametri utili
-#define DELAY_TIME 2000   
+#define DELAY_TIME 1000   
 #define REFRESH_RATE 30
 
 
@@ -27,15 +27,18 @@ void lightControl();
 void fanControl();
 void moistControl();
 void checkWater();
-float moistToPercentage(int m);
+void setOutputs();
+float toPercentage(int m);
 long minuti(int a);
  
 bool irrigated = false;
 int frame=0;
 unsigned long previousMillis = 0;
-unsigned long intervalLong = minuti(1);
+unsigned long irrigationStart;
+long irrigationTime;
+unsigned long intervalLong = minuti(3);
 const int lightMax = 600;
-int fanState = LOW;
+int fanState = HIGH;
 const int moistMin = 400;
 int temperature;
 int humidity;
@@ -44,23 +47,23 @@ int moist;
 
 void setup() {
   Serial.begin(9600);
+  setOutputs();
   lcdInitialize();
   for (int i=0; i<=13; i++){
     digitalWrite(i, LOW);
   }
-  pinMode(FAN, OUTPUT);
-  pinMode(WATER,OUTPUT);
-  pinMode(LIGHT, OUTPUT);
+ 
+ 
 }
 
 void loop() {
   Serial.println("-------------------------------");
   //stampa temperatura e umidità aria
   printTH();
-  //controllo luce
-  lightControl();
   //controllo umidità terreno e aggiornamento lcd
   moistControl();
+  //controllo luce
+  lightControl();
   //controllo ventilazione
   fanControl();
   
@@ -69,10 +72,16 @@ void loop() {
   if (frame==REFRESH_RATE) refreshLcd();
   delay(DELAY_TIME);
 }
-float moistToPercentage(int m)
+float toPercentage(int m)
 {
   return (100*(float)m/1023);
 }
+void setOutputs(){
+  pinMode(FAN, OUTPUT);
+  pinMode(WATER,OUTPUT);
+  pinMode(LIGHT, OUTPUT);
+}
+
 void moistControl(){
   int moistVal = analogRead(MOIST);
   if(moistVal!= moist){
@@ -81,27 +90,45 @@ void moistControl(){
     lcd.setCursor(5,1);
     lcd.print("    ");
     lcd.setCursor(5,1);
-    lcd.print(moistToPercentage(moist));
+    lcd.print(toPercentage(moist));
     lcd.print("%");
    }
-   
+   irrigationStart = millis();
     while (moistMin-moist>0){
+      checkWater();
+    }
+    irrigationTime= 0;
+    digitalWrite(WATER, LOW);
+    Serial.print("Moist: ");
+    Serial.print(toPercentage(moist));
+    Serial.println("%");
+}
+void checkWater(){
+ irrigationTime = millis() - irrigationStart;
+  Serial.print((float)irrigationTime/1000);
+  Serial.print(" seconds");
+ if(irrigationTime > 5000){
+  digitalWrite(WATER, LOW);
+      lcd.clear();
+      lcd.clear();
+      lcd.setCursor(0,0);
+      lcd.print("REFILL WATER");
+      lcd.setCursor(0,1);
+      lcd.print("AND RESTART");
+      Serial.println(" !!!REFILL WATER!!!");
+      delay(10000);
+ } else{
+      Serial.println(" IRRIGATING...");
       lcd.setCursor(0,0);
       lcd.print("IRRIGATING!");
       lcd.setCursor(0,1);
       lcd.print("Watering...");
-      Serial.println("IRRIGATING!");
       irrigated = true;
       if(WATER_ON) digitalWrite(WATER, HIGH);
       moist = 1023-analogRead(MOIST);
-      
-    }
-    digitalWrite(WATER, LOW);
-    Serial.print("Moist: ");
-    Serial.print(moistToPercentage(moist));
-    Serial.println("%");
-}
+ }
 
+}
 void lcdInitialize(){
   lcd.begin(16, 2);
   lcd.setCursor(0, 0);
@@ -110,7 +137,6 @@ void lcdInitialize(){
   lcd.print("m:");
   lcd.setCursor(13,0);
   lcd.print("h:");
-
   //t
    lcd.setCursor(0, 1);
     lcd.print("     ");
@@ -122,7 +148,7 @@ void lcdInitialize(){
     lcd.setCursor(5,1);
     lcd.print("    ");
     lcd.setCursor(5,1);
-    lcd.print(moistToPercentage(moist));
+    lcd.print(toPercentage(moist));
     lcd.print("%");
     //h
      lcd.setCursor(13, 1);
@@ -133,9 +159,8 @@ void lcdInitialize(){
 }
 
 void refreshLcd(){ 
-    lcd.clear();
-    lcd.begin(16, 2);
-    lcd.setCursor(0, 0);
+  
+    lcdInitialize();
     frame=0;
     Serial.println("LCD pulito");
 }
@@ -148,6 +173,9 @@ void lightControl() {
   else {
     digitalWrite(LIGHT, LOW);
   }
+  Serial.print("Light Lvl: ");
+  Serial.print(toPercentage(lightVal));
+  Serial.println("%");
 }
 void printTH() {
   int chk = DHT.read11(DHT11_PIN);
@@ -197,10 +225,7 @@ void fanControl() {
   Serial.println(" seconds");
 }
 
-void checkWater(){
- //TODO
 
-}
 long minuti(int a) {
   return a * 60000;
 }

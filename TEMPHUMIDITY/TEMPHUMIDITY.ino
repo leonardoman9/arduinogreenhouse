@@ -11,11 +11,14 @@
 #define WATER 9
 #define LIGHT 10
 //parametri utili
+
+#define LIGHT_MAX 600
+#define MOIST_MIN 512
 #define DELAY_TIME 1000   
 #define REFRESH_RATE 30
-
-
+#define IRRIGATION_TIME_MAX 5000
 const bool WATER_ON = true;
+
 
 LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
 dht DHT;
@@ -36,10 +39,8 @@ int frame=0;
 unsigned long previousMillis = 0;
 unsigned long irrigationStart;
 long irrigationTime;
-unsigned long intervalLong = minuti(3);
-const int lightMax = 600;
+unsigned long intervalLong = minuti(1);
 int fanState = HIGH;
-const int moistMin = 400;
 int temperature;
 int humidity;
 int moist;
@@ -52,8 +53,6 @@ void setup() {
   for (int i=0; i<=13; i++){
     digitalWrite(i, LOW);
   }
- 
- 
 }
 
 void loop() {
@@ -66,7 +65,6 @@ void loop() {
   lightControl();
   //controllo ventilazione
   fanControl();
-  
   //reimpostazione lcd
   if (irrigated) lcdInitialize();
   if (frame==REFRESH_RATE) refreshLcd();
@@ -94,21 +92,24 @@ void moistControl(){
     lcd.print("%");
    }
    irrigationStart = millis();
-    while (moistMin-moist>0){
+    while (MOIST_MIN-moist>0){
       checkWater();
     }
     irrigationTime= 0;
     digitalWrite(WATER, LOW);
     Serial.print("Moist: ");
     Serial.print(toPercentage(moist));
+    Serial.print("%, minimum: ");
+    Serial.print(toPercentage(MOIST_MIN));
     Serial.println("%");
 }
+
 void checkWater(){
  irrigationTime = millis() - irrigationStart;
   Serial.print((float)irrigationTime/1000);
   Serial.print(" seconds");
- if(irrigationTime > 5000){
-  digitalWrite(WATER, LOW);
+ if(irrigationTime > IRRIGATION_TIME_MAX){
+      digitalWrite(WATER, LOW);
       lcd.clear();
       lcd.clear();
       lcd.setCursor(0,0);
@@ -117,7 +118,7 @@ void checkWater(){
       lcd.print("AND RESTART");
       Serial.println(" !!!REFILL WATER!!!");
       delay(10000);
- } else{
+ } else {
       Serial.println(" IRRIGATING...");
       lcd.setCursor(0,0);
       lcd.print("IRRIGATING!");
@@ -159,7 +160,6 @@ void lcdInitialize(){
 }
 
 void refreshLcd(){ 
-  
     lcdInitialize();
     frame=0;
     Serial.println("LCD pulito");
@@ -167,13 +167,15 @@ void refreshLcd(){
 
 void lightControl() {
   int lightVal = analogRead(PHOTO_IN);
-  if (lightVal < lightMax) {
+  if (lightVal < LIGHT_MAX) {
     digitalWrite(LIGHT, HIGH);
+    Serial.print("Light: ON");
   }
   else {
     digitalWrite(LIGHT, LOW);
+    Serial.print("Light: OFF");
   }
-  Serial.print("Light Lvl: ");
+  Serial.print(", light Lvl: ");
   Serial.print(toPercentage(lightVal));
   Serial.println("%");
 }
@@ -183,7 +185,7 @@ void printTH() {
   int h = (int) DHT.humidity;
   if (t!=temperature || h != humidity){
     frame++;
-    temperature = t;
+    temperature = t; 
     humidity = h;
     lcd.setCursor(0, 1);
     lcd.print("     ");
@@ -211,9 +213,9 @@ void fanControl() {
   if(currentMillis - previousMillis>= intervalLong){
     previousMillis = currentMillis;
     fanState = !fanState;
-    digitalWrite(FAN, fanState);
   }
-  //per qualche motivo, queste tre righe sono fondamentali per il funzioamento dell'lcd
+  digitalWrite(FAN, fanState);
+  //per qualche motivo, queste righe sono fondamentali per il funzioamento dell'lcd
   Serial.print("Fan: ");
   switch(fanState){
     case 0: Serial.print("OFF"); break;

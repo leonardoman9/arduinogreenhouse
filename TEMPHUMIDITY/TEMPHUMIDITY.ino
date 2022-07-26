@@ -10,6 +10,7 @@
 #define FAN 13
 #define WATER 9
 #define LIGHT 10
+#define BUZZER 8
 //parametri utili
 
 #define LIGHT_MAX 600
@@ -58,6 +59,7 @@ void setup() {
 }
 
 void loop() {
+  
   Serial.println("-------------------------------");
   //stampa temperatura e umidità aria
   readTH();
@@ -80,6 +82,7 @@ void setOutputs(){
   pinMode(FAN, OUTPUT);
   pinMode(WATER,OUTPUT);
   pinMode(LIGHT, OUTPUT);
+  pinMode(BUZZER, OUTPUT);
 }
 
 void moistControl(){
@@ -115,7 +118,10 @@ void checkWater(){
       lcd.setCursor(0,1);
       lcd.print("AND RESTART");
       Serial.println(" !!!REFILL WATER!!!");
-      delay(10000);
+      digitalWrite(BUZZER, HIGH);
+      delay(100);
+      digitalWrite(BUZZER, LOW);
+      delay(5000);
  } else {
       Serial.println(" IRRIGATING...");
       lcd.clear();

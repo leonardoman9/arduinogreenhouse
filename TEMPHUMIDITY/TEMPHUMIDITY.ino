@@ -10,6 +10,12 @@
 #define FAN 13
 #define WATER 9
 #define LIGHT 10
+//parametri utili
+#define DELAY_TIME 2000   
+#define REFRESH_RATE 30
+
+
+const bool WATER_ON = true;
 
 LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
 dht DHT;
@@ -21,12 +27,12 @@ void lightControl();
 void fanControl();
 void moistControl();
 void checkWater();
+float moistToPercentage(int m);
 long minuti(int a);
-
-const int REFRESH_RATE = 20;
+ 
+bool irrigated = false;
 int frame=0;
 unsigned long previousMillis = 0;
-unsigned long interval = minuti(1);
 unsigned long intervalLong = minuti(1);
 const int lightMax = 600;
 int fanState = LOW;
@@ -48,18 +54,49 @@ void setup() {
 }
 
 void loop() {
+  Serial.println("-------------------------------");
   //stampa temperatura e umidità aria
   printTH();
   //controllo luce
   lightControl();
-  //controllo ventilazione
-  fanControl();
   //controllo umidità terreno e aggiornamento lcd
   moistControl();
+  //controllo ventilazione
+  fanControl();
+  
   //reimpostazione lcd
+  if (irrigated) lcdInitialize();
   if (frame==REFRESH_RATE) refreshLcd();
+  delay(DELAY_TIME);
 }
-
+float moistToPercentage(int m)
+{
+  return (100*(float)m/1023);
+}
+void moistControl(){
+  int moistVal = analogRead(MOIST);
+  if(moistVal!= moist){
+    frame++;
+    moist = 1023-moistVal;
+    lcd.setCursor(5,1);
+    lcd.print("    ");
+    lcd.setCursor(5,1);
+    lcd.print(moistToPercentage(moist));
+    lcd.print("%");
+   }
+   
+    while (moistMin-moist>0){
+      Serial.println("IRRIGATING!");
+      irrigated = true;
+      if(WATER_ON) digitalWrite(WATER, HIGH);
+      moist = 1023-analogRead(MOIST);
+      
+    }
+    digitalWrite(WATER, LOW);
+    Serial.print("Moist: ");
+    Serial.print(moistToPercentage(moist));
+    Serial.println("%");
+}
 
 void lcdInitialize(){
   lcd.begin(16, 2);
@@ -69,6 +106,26 @@ void lcdInitialize(){
   lcd.print("m:");
   lcd.setCursor(13,0);
   lcd.print("h:");
+
+  //t
+   lcd.setCursor(0, 1);
+    lcd.print("     ");
+    lcd.setCursor(0, 1);
+    lcd.print(temperature);
+    lcd.print((char)223);
+    lcd.print("C");
+   //moist
+    lcd.setCursor(5,1);
+    lcd.print("    ");
+    lcd.setCursor(5,1);
+    lcd.print(moistToPercentage(moist));
+    lcd.print("%");
+    //h
+     lcd.setCursor(13, 1);
+    lcd.print("    ");
+    lcd.setCursor(13, 1);
+    lcd.print(humidity);
+    lcd.print("%");
 }
 
 void refreshLcd(){ 
@@ -108,52 +165,38 @@ void printTH() {
     lcd.print(h);
     lcd.print("%");
   }
+  Serial.print("t: ");
+  Serial.print(t);
+  Serial.println("°C");
+  Serial.print("h: ");
+  Serial.print(h);
+  Serial.println("%");
 }
-void moistControl(){
-  int moistVal = analogRead(MOIST);
-  if(moistVal!= moist){
-    frame++;
-    moist = 1023-moistVal;
-    lcd.setCursor(5,1);
-    lcd.print("    ");
-    lcd.setCursor(5,1);
-    lcd.print(moist);
-   }
-   if(moistMin-moist>0){
-    digitalWrite(WATER, HIGH);
-   }else {
-    digitalWrite(WATER, LOW);
-  }
-}
+
 
 void fanControl() {
   unsigned long currentMillis = millis();
-  if (fanState == LOW) { //se la ventola è spenta
-    if (currentMillis - previousMillis >= intervalLong) {
-      previousMillis = currentMillis;
-      digitalWrite(FAN, HIGH);
-      fanState = HIGH;
-    }
-  }
-  else if (fanState == HIGH) {
-    if (currentMillis - previousMillis >= interval) {
-      previousMillis = currentMillis;
-      digitalWrite(FAN, LOW);
-      fanState = LOW;
-    }
+  if(currentMillis - previousMillis>= intervalLong){
+    previousMillis = currentMillis;
+    fanState = !fanState;
+    digitalWrite(FAN, fanState);
   }
   //per qualche motivo, queste tre righe sono fondamentali per il funzioamento dell'lcd
-  Serial.print("Cambio di stato della ventola fra ");
+  Serial.print("Fan: ");
+  switch(fanState){
+    case 0: Serial.print("OFF"); break;
+    case 1: Serial.print("ON"); break;
+    default: Serial.print("error"); break;
+  }
+  Serial.print(", time left: ");
   Serial.print(intervalLong / 1000 - (millis() / 1000 - previousMillis / 1000));
-  Serial.println(" secondi");
+  Serial.println(" seconds");
 }
 
 void checkWater(){
  //TODO
 
 }
-
-
 long minuti(int a) {
   return a * 60000;
 }
